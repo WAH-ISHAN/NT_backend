@@ -6,43 +6,49 @@ import dotenv from "dotenv";
 dotenv.config()
 export function saveUser(req, res) {
 
-	if(req.body.usertype == "admin"){
-		if(req.user==null){
-			res.status(403).json({
-				message: "Please login as admin before creating an admin account",
-			});
-			return;
-		}
-		if(req.user.usertype != "admin"){
-			res.status(403).json({
-				message: "You are not authorized to create an admin account",
-			});
-			return;
-		}
-	}
+    // Validate password presence before hashing
+    if (!req.body.password) {
+        return res.status(400).json({ message: "Password is required" });
+    }
 
-	const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-	const user = new User({
-		email: req.body.email,
-		firstName: req.body.firstName,
-		lastName: req.body.lastName,
-		password: hashedPassword,
-		usertype: req.body. usertype,
-	});
-	user
-		.save()
-		.then(() => {
-			res.json({
-				message: "User saved successfully",
-			});
-		})
-		.catch((err) => {
-			console.log(err);
-			res.status(500).json({
-				message: "User not saved",
-			});
-		});
+    if(req.body.usertype == "admin"){
+        if(req.user == null){
+            return res.status(403).json({
+                message: "Please login as admin before creating an admin account",
+            });
+        }
+        if(req.user.usertype != "admin"){
+            return res.status(403).json({
+                message: "You are not authorized to create an admin account",
+            });
+        }
+    }
+
+    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+
+
+    const user = new User({
+        email: req.body.email,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        password: hashedPassword,
+        usertype: req.body.usertype,
+    });
+
+    user.save()
+        .then(() => {
+            res.json({
+                message: "User saved successfully",
+            });
+        })
+        .catch((err) => {
+            console.log(err);
+            res.status(500).json({
+                message: "User not saved",
+            });
+        });
 }
+
 export function loginUser(req, res) {
 	const email = req.body.email;
 	const password = req.body.password;
