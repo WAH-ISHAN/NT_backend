@@ -1,7 +1,7 @@
 import Order from "../Models/OrderModel.js";
 import Product from "../Models/ProductModel.js"
 
-export async function createOrder(req, res) {
+export async function CreateOrder(req, res) {
 	if (req.user == null) {
 		res.status(401).json({
 			message: "Unauthorized",
@@ -79,7 +79,7 @@ export async function createOrder(req, res) {
 		});
 }
 
-export function getOrders(req, res) {
+export function GetOrders(req, res) {
 	if (req.user == null) {
 		res.status(401).json({
 			message: "Unauthorized",
@@ -112,7 +112,7 @@ export function getOrders(req, res) {
 	}
 }
 
-export async function updateOrder(req,res){
+export async function UpdateOrder(req,res){
 	try{
 		if(req.user == null){
 			res.status(401).json({
