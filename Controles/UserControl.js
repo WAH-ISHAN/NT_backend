@@ -1,7 +1,6 @@
 import express from 'express';
-import { User } from '../Models/User.js';
 import dotenv from 'dotenv';
-import { toast } from 'toastify-js';
+import Userz from '../Models/UserModel.js';
 dotenv.config();
 
 export function SaveUser(res,req){
@@ -9,28 +8,22 @@ export function SaveUser(res,req){
 
     if(req.body.UserType === "Admin"){
         if(req.UserType == null){
-            res.status(403).json({
-                toast:
-                {
-                    message:"Please login as admin befpre creating an admin account"
-                }
-            })
+              res.status(403).json({
+                message: "Please login as admin before creating an admin account"
+            });
             return;
         }
         if(req.UserType !== "Admin"){
             res.status(403).json({
-                toast:
-                {
-                    message:"You are not authorized to create an admin account"
-                }
-            })
+                message: "You are not authorized to create an admin account"
+            });
             return;
         }
     }
 
 {/*       */}
 
-        const user = new User({
+        const user = new Userz({
             Email: req.body.Email,
             FristName: req.body.FristName,
             LastName: req.body.LastName,
@@ -42,15 +35,15 @@ export function SaveUser(res,req){
         user.Save().then(() => {
                 console.log("User saved successfully");
                 res.json({
-                    toast: { message: "User saved" }
-                });
+            message: "User saved"
+        });
+
             }).catch((error) => {
                 console.log("Error saving user", error);
                 res.status(500).json({
-                    toast: {
-                        message: "Error saving user"
-                    }
-                });
+            message: "Error saving user"
+        });
+
             });
 
 
@@ -60,22 +53,21 @@ export function LoginUser(req, res){
     const Email = req.body.Email;
     const Password = req.body.Password;
 
-   User.findOne({ Email: Email, Password: Password })
+   Userz.findOne({ Email: Email, Password: Password })
     .then((user) => {
         console.log(user)
         if(user == null){
-            res.status(404).json(
-                {
-                    toast: {
-                        message: "User not found"
-                    }
-                })
+             res.status(404).json({
+                    message: "User not found"
+                });
+
+
             }else if(!user.Password){
-                res.jsom({
-                    toast: {
-                        message: "Password is incorrect"
-                    }
-                })
+                res.status(401).json({
+                    message: "Password is incorrect"
+                });
+
+
             }else{
                 const isPasswordCorrect = user.Password === Password;
                 if(isPasswordCorrect){
@@ -88,19 +80,15 @@ export function LoginUser(req, res){
                     }
                     
                 }
-                res.json({
+                res.status(401).json({
                     toast: {
-                        message: "User logged in successfully",
-                        userData: userData
+                        message: "Password is incorrect"
                     }
-                })
-
-    }
-}).catch((error) => {
-    res.status(500).json({
-        toast: {
-            message: "Error logging in user"
-        }
-    })
-});
+                });
+            }
+        }).catch((error) => {
+            res.status(500).json({
+                message: "Error logging in user"
+            });
+        });
 }

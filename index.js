@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import UserRouter from './Routers/UserRouter';
+import UserRouter from './Routers/UserRouter.js';
 import nodemon from 'nodemon';
 import cors from 'cors';
 
@@ -10,7 +10,7 @@ import cors from 'cors';
 dotenv.config();
 
 const app = express();
-app.use(core())
+app.use(cors());
 
 mongoose.connect(process.env.MONGO_URL).then(() => {
     console.log("Connected to MongoDB");
