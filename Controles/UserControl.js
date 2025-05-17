@@ -11,19 +11,6 @@ export function saveUser(req, res) {
         return res.status(400).json({ message: "Password is required" });
     }
 
-    if(req.body.usertype == "admin"){
-        if(req.user == null){
-            return res.status(403).json({
-                message: "Please login as admin before creating an admin account",
-            });
-        }
-        if(req.user.usertype != "admin"){
-            return res.status(403).json({
-                message: "You are not authorized to create an admin account",
-            });
-        }
-    }
-
     const hashedPassword = bcrypt.hashSync(req.body.password, 10);
 
 
@@ -34,7 +21,7 @@ export function saveUser(req, res) {
         password: hashedPassword,
         usertype: req.body.usertype,
     });
-
+	console.log(user);
     user.save()
         .then(() => {
             res.json({
