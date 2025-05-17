@@ -1,94 +1,92 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import Userz from '../Models/UserModel.js';
-dotenv.config();
+import User from "../Models/UserModel.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+import axios from "axios";
+dotenv.config()
+export function saveUser(req, res) {
 
-export function SaveUser(res,req){
-    const Password =req.body.Password || req.body.Password;
+	if(req.body.usertype == "admin"){
+		if(req.user==null){
+			res.status(403).json({
+				message: "Please login as admin before creating an admin account",
+			});
+			return;
+		}
+		if(req.user.usertype != "admin"){
+			res.status(403).json({
+				message: "You are not authorized to create an admin account",
+			});
+			return;
+		}
+	}
 
-    if(req.body.UserType === "Admin"){
-        if(req.UserType == null){
-              res.status(403).json({
-                message: "Please login as admin before creating an admin account"
-            });
-            return;
-        }
-        if(req.UserType !== "Admin"){
-            res.status(403).json({
-                message: "You are not authorized to create an admin account"
-            });
-            return;
-        }
-    }
+	const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+	const user = new User({
+		email: req.body.email,
+		firstName: req.body.firstName,
+		lastName: req.body.lastName,
+		password: hashedPassword,
+		usertype: req.body. usertype,
+	});
+	user
+		.save()
+		.then(() => {
+			res.json({
+				message: "User saved successfully",
+			});
+		})
+		.catch((err) => {
+			console.log(err);
+			res.status(500).json({
+				message: "User not saved",
+			});
+		});
+}
+export function loginUser(req, res) {
+	const email = req.body.email;
+	const password = req.body.password;
 
-{/*       */}
+	User.findOne({
+		email: email,
+	}).then((user) => {
+		if (user == null) {
+			res.status(404).json({
+				message: "Invalid email",
+			});
+		} else {
+			const isPasswordCorrect = bcrypt.compareSync(password, user.password);
+			
+			if (isPasswordCorrect) {
+				
+				const userData = {
+					email: user.email,
+					firstName: user.firstName,
+					lastName: user.lastName,
+					 usertype: user. usertype,
+					phone: user.phone,
+					isDisabled: user.isDisabled,
+					isEmailVerified: user.isEmailVerified
+				}
+				console.log(userData)
 
-        const user = new Userz({
-            Email: req.body.Email,
-            FristName: req.body.FristName,
-            LastName: req.body.LastName,
-            UserType: req.body.UserType,
-            Password: Password,
-            PhoneNumber: req.body.PhoneNumber
-        })
+				const token = jwt.sign(userData,process.env.JWT_KEY,{
+					expiresIn : "12hrs"
+				})
 
-        user.Save().then(() => {
-                console.log("User saved successfully");
-                res.json({
-            message: "User saved"
-        });
-
-            }).catch((error) => {
-                console.log("Error saving user", error);
-                res.status(500).json({
-            message: "Error saving user"
-        });
-
-            });
-
-
-        }
-export function LoginUser(req, res){
-   
-    const Email = req.body.Email;
-    const Password = req.body.Password;
-
-   Userz.findOne({ Email: Email, Password: Password })
-    .then((user) => {
-        console.log(user)
-        if(user == null){
-             res.status(404).json({
-                    message: "User not found"
-                });
-
-
-            }else if(!user.Password){
-                res.status(401).json({
-                    message: "Password is incorrect"
-                });
+				res.json({
+					message: "Login successful",
+					token: token,
+					user : userData
+				});
 
 
-            }else{
-                const isPasswordCorrect = user.Password === Password;
-                if(isPasswordCorrect){
-                    const userData = {
-                        Email: user.Email,
-                        FristName: user.FristName,
-                        LastName: user.LastName,
-                        UserType: user.UserType,
-                        PhoneNumber: user.PhoneNumber
-                    }
-                    
-                }
-                res.status(401).json({
-                    toast: {
-                        message: "Password is incorrect"
-                    }
-                });
-            }
-        }).catch((error) => {
-            res.status(500).json({
-                message: "Error logging in user"
-            });
-        });
+			} else {
+				res.status(403).json({
+					message: "Invalid password",
+				});
+				
+			}
+		}
+	});
 }

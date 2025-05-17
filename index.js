@@ -1,26 +1,36 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import UserRouter from './Routers/UserRouter.js';
-import nodemon from 'nodemon';
-import cors from 'cors';
+import express from "express";
+import bodyParser from "body-parser";
+import mongoose from "mongoose";
+import userRouter from "./Routers/UserRouter.js";
+import productRouter from "./Routers/ProductRouter.js";
+import verifyJWT from "./middleware/auth.js";
+import orderRouter from "./Routers/OrderRouter.js";
+import dotenv from "dotenv";
+import cors from "cors";
+
+
 
 
 dotenv.config();
-
 const app = express();
 app.use(cors());
 
-mongoose.connect(process.env.MONGO_URL).then(() => {
-    console.log("Connected to MongoDB");
-}).catch((error) => {
-    console.log("Error connecting to MongoDB", error);
-});
+mongoose
+	.connect(process.env.MONGO_URL)
+	.then(() => {
+		console.log("Connected to the database");
+	})
+	.catch(() => {
+		console.log("Connection failed");
+	});
+
 app.use(bodyParser.json());
+app.use(verifyJWT);
 
-app.use("/api/User", UserRouter);
+app.use("/api/user", userRouter);
+app.use("/api/product", productRouter);
+app.use("/api/order", orderRouter);
 
-app.listen(5000, () => {    
-    console.log("Server is running on port 5000");
+app.listen(5000, () => {
+	console.log("Server is running on port 5000");
 });

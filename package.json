@@ -13,8 +13,11 @@
   "description": "",
   "dependencies": {
     "backend": "file:",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",
     "simple-git": "^3.27.0",
     "toastify-js": "^1.12.0"

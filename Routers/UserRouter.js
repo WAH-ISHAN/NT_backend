@@ -1,12 +1,10 @@
-import express from 'express';
-import { LoginUser, SaveUser } from '../Controles/UserControl.js';
+import express from "express";
+import { loginUser, saveUser } from "../Controles/UserControl.js";
+
+const userRouter = express.Router();
+
+userRouter.post("/",saveUser)
+userRouter.post("/login",loginUser)
 
 
-
-const UserRouter = express.Router();
-
-
-UserRouter.post('/SaveUser',SaveUser)
-UserRouter.post('/LoginUser',LoginUser)
-
-export default UserRouter;
+export default userRouter;
