@@ -27,7 +27,8 @@ const productSchema = new mongoose.Schema({
         required : true,
         default : []
     },
-   
+    
+
 })
 
 const Product = mongoose.model("products",productSchema)
