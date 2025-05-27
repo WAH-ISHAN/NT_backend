@@ -3,11 +3,23 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import axios from "axios";
+import nodemailer from "nodemailer";
+
+const transporter = nodemailer.createTransport({
+	service: "gmail",
+	host: "smtp.gmail.com",
+	port: 587,
+	secure: false,
+	auth: {
+		user: process.env.email,
+		pass: process.env.GOOGLE_PASS_ID + process.env.password,
+	},
+});
 
 dotenv.config()
 export function saveUser(req, res) {
 
-    // Validate password presence before hashing
+    
     if (!req.body.password) {
         return res.status(400).json({ message: "Password is required" });
     }
@@ -160,4 +172,29 @@ export async function googleLogin(){
 			message:"Google Login fail "
 		})
 	}
+}
+export function sendOTP(req, res) {
+	const email = req.body.email;
+	const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+	const message = {
+		from: process.env.email,
+		to: email,
+		subject: "Your OTP Code",
+		text: `Your OTP code is ${otp}`,
+	};
+	transporter.sendMail(message, (error, info) => {
+		if (error) {
+			return res.status(500).json({
+				message: "Error sending OTP",
+			});
+		}
+		// Store OTP in session or database for verification
+		req.session.otp = otp;
+		req.session.email = email; // Store email for later verification
+		res.json({
+			message: "OTP sent successfully",
+			otp: otp, // For testing purposes, you might want to remove this in production
+		});
+	});	
 }
