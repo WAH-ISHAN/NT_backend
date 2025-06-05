@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import axios from "axios";
 import nodemailer from "nodemailer";
+import OTP from "../Models/Otp.js";
 
 const transporter = nodemailer.createTransport({
 	service: "gmail",
@@ -49,53 +50,55 @@ export function saveUser(req, res) {
         });
 }
 
-export function loginUser(req, res) {
-	const email = req.body.email;
-	const password = req.body.password;
+export async function loginUser(req, res) {
+  const email = req.body.email;
+  const password = req.body.password;
 
-	User.findOne({
-		email: email,
-	}).then((user) => {
-		if (user == null) {
-			res.status(404).json({
-				message: "Invalid email",
-			});
-		} else {
-			const isPasswordCorrect = bcrypt.compareSync(password, user.password);
-			
-			if (isPasswordCorrect) {
-				
-				const userData = {
-					email: user.email,
-					firstName: user.firstName,
-					lastName: user.lastName,
-					 usertype: user. usertype,
-					phone: user.phone,
-					isDisabled: user.isDisabled,
-					isEmailVerified: user.isEmailVerified
-				}
-				console.log(userData)
+  try {
+    const user = await User.findOne({ email: email });
 
-				const token = jwt.sign(userData,process.env.JWT_KEY,{
-					expiresIn : "12hrs"
-				})
+    if (!user) {
+      return res.status(404).json({ message: "Invalid email" });
+    }
 
-				res.json({
-					message: "Login successful",
-					token: token,
-					user : userData
-				});
+    const isPasswordCorrect = bcrypt.compareSync(password, user.password);
 
+    if (!isPasswordCorrect) {
+      return res.status(403).json({ message: "Invalid password" });
+    }
 
-			} else {
-				res.status(403).json({
-					message: "Invalid password",
-				});
-				
-			}
-		}
-	});
+    // ✅ Update last login time
+    await User.updateOne(
+      { email: user.email },
+      { lastLoggedIn: new Date() }
+    );
+
+    const userData = {
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      usertype: user.usertype,
+      phone: user.phone,
+      isDisabled: user.isDisabled,
+      isEmailVerified: user.isEmailVerified
+    };
+
+    const token = jwt.sign(userData, process.env.JWT_KEY, {
+      expiresIn: "12h"
+    });
+
+    res.json({
+      message: "Login successful",
+      token: token,
+      user: userData
+    });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 }
+
 export async function googleLogin(){
 
 	const accesstoken = req.body.accesstoken;
@@ -173,7 +176,7 @@ export async function googleLogin(){
 		})
 	}
 }
-export function sendOTP(req, res) {
+export  function sendOTP(req, res) {
 	const email = req.body.email;
 	const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -183,18 +186,91 @@ export function sendOTP(req, res) {
 		subject: "Your OTP Code",
 		text: `Your OTP code is ${otp}`,
 	};
+	const newOtp = new OTP({
+		email: email,
+		otp: otp,
+	});
+	newOtp.save().then(() => {
+		console.log("OTP saved successfully");
+	}).catch((err) => {
+		console.log("Error saving OTP:", err);
+		return res.status(500).json({
+			message: "Error saving OTP",
+		});
+	});
 	transporter.sendMail(message, (error, info) => {
 		if (error) {
 			return res.status(500).json({
 				message: "Error sending OTP",
 			});
 		}
-		// Store OTP in session or database for verification
+		
 		req.session.otp = otp;
-		req.session.email = email; // Store email for later verification
+		req.session.email = email; 
 		res.json({
 			message: "OTP sent successfully",
-			otp: otp, // For testing purposes, you might want to remove this in production
+			otp: otp, 
 		});
 	});	
 }
+export async function changePassword(req,res){
+	const email = req.body.email;
+	const password = req.body.password;
+	const otp = req.body.otp;
+	try{
+		
+		const lastOTPData = await OTP.findOne({
+			email : email
+		}).sort({createdAt : -1})
+
+		if(lastOTPData == null){
+			res.status(404).json({
+				message : "No OTP found for this email"
+			})
+			return;
+		}
+		if(lastOTPData.otp != otp){
+			res.status(403).json({
+				message : "Invalid OTP"
+			})
+			return;
+		}
+
+		const hashedPassword = bcrypt.hashSync(password, 10);
+		await User.updateOne({
+			email : email
+		},{
+			password : hashedPassword
+		})
+		await OTP.deleteMany({
+			email : email
+		})
+		res.json({
+			message : "Password changed successfully"
+		})
+
+		
+
+	}catch(e){
+		res.status(500).json({
+			message : "Error changing password"
+		})
+	}
+	
+
+}
+export async function getAllUsers(req, res) {
+	try {
+		const users = await User.find({});
+		res.status(200).json({
+			message: "All users fetched successfully",
+			users: users
+		});
+	} catch (error) {
+		console.error("Error fetching users:", error);
+		res.status(500).json({
+			message: "Error fetching users",
+		});
+	}
+}
+

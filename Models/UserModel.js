@@ -38,6 +38,11 @@ const userSchema = new mongoose.Schema({
         required : true,
         default : false
     },
+    lastLoggedIn: {
+  type: Date,
+  default: null,
+}
+
 })
 const User = mongoose.model("users",userSchema)
 export default User;
