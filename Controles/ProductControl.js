@@ -8,7 +8,7 @@ export async function CreateProduct(req,res){
         return;
     }
 
-    if(req.user.role != "admin"){
+    if(req.user.usertype != "admin"){
         res.status(403).json({
             message : "You are not authorized to create a product"
         })
@@ -43,20 +43,21 @@ export function getProducts(req,res){
         }
     )
 }
-export async function  getProductId(req,res){
-    const productId = req.params.id
-    console.log(productId)
-    const product = await Product.findOne({productId : productId})
-    if(product == null){
-        res.status(404).json({
-            message : "Product not found"
-        })
-        return
+export async function getProductId(req, res) {
+    const productId = req.params.id;
+    console.log("Searching for productId:", productId);
+
+    try {
+        const product = await Product.findOne({ productId: productId });
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+        res.json({ product });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-    res.json({
-        product : product
-    })
 }
+
 
 export function DeleteProduct(req,res){
     if(req.user == null){

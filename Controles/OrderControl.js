@@ -1,142 +1,155 @@
 import Order from "../Models/OrderModel.js";
-import Product from "../Models/ProductModel.js"
+import Product from "../Models/ProductModel.js";
 
 export async function CreateOrder(req, res) {
-	if (req.user == null) {
-		res.status(401).json({
-			message: "Unauthorized",
-		});
-		return;
-	}
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
-	const body = req.body;
-	const orderData = {
-		orderId: "",
-		email: req.user.email,
-		name: body.name,
-		phoneNumber: body.phoneNumber,
-		billItems: [],
-		total: 0,
-	};
-	Order.find()
-		.sort({
-			date: -1,
-		})
-		.limit(1)
-		.then(async (lastBills) => {
-			if (lastBills.length == 0) {
-				orderData.orderId = "ORDER0001";
-			} else {
-				const lastBill = lastBills[0];
-				const lastOrderId = lastBill.orderId; 
-				const lastOrderNumber = lastOrderId.replace("ORDER", ""); 
-				const lastOrderNumberInt = parseInt(lastOrderNumber);
-				const newOrderNumberInt = lastOrderNumberInt + 1;
-				const newOrderNumberStr = newOrderNumberInt.toString().padStart(4, "0"); 
-				orderData.orderId = "ORDER" + newOrderNumberStr;
-			}
+  const body = req.body;
 
-			for (let i = 0; i < body.billItems.length; i++) {
-				const product = await Product.findOne({
-					productId: body.billItems[i].productId,
-				});
-				if (product == null) {
-					res.status(404).json({
-						message:
-							"Product with product id " +
-							body.billItems[i].productId +
-							" not found",
-					});
-					return;
-				}
-				
+  // Validate required fields
+  if (!body.phone || !body.address) {
+    return res.status(400).json({ message: "Phone and address are required." });
+  }
 
-				orderData.billItems[i] = {
-                    productId : product.productId,
-                    productName : product.name,
-                    image : product.images[0],
-                    quantity : body.billItems[i].quantity,
-                    price : product.price
-                };
-                orderData.total = orderData.total + product.price * body.billItems[i].quantity
-			}
+  const orderData = {
+    orderId: "",
+    email: req.user.email,
+    name: body.name,
+    phone: body.phone,
+    address: body.address,
+    billItems: [],
+    total: 0,
+    status: "Pending", // Add status by default
+  };
 
-			const order = new Order(orderData);
+  try {
+    // Get last order to generate new orderId
+    const lastBills = await Order.find().sort({ date: -1 }).limit(1);
+    if (lastBills.length === 0) {
+      orderData.orderId = "ORDER0001";
+    } else {
+      const lastOrderId = lastBills[0].orderId;
+      const lastOrderNumber = parseInt(lastOrderId.replace("ORDER", ""), 10);
+      const newOrderNumberStr = (lastOrderNumber + 1).toString().padStart(4, "0");
+      orderData.orderId = "ORDER" + newOrderNumberStr;
+    }
 
-			order
-				.save()
-				.then(() => {
-					res.json({
-						message: "Order saved successfully",
-					});
-				})
-				.catch((err) => {
-					console.log(err);
-					res.status(500).json({
-						message: "Order not saved",
-					});
-				});
-		});
+    // Process each bill item
+    for (let i = 0; i < body.billItems.length; i++) {
+      const { productId, quantity } = body.billItems[i];
+      const product = await Product.findOne({ productId });
+      if (!product) {
+        return res.status(404).json({ message: `Product with product id ${productId} not found` });
+      }
+      orderData.billItems.push({
+        productId: product.productId,
+        productName: product.name,
+        image: product.images[0],
+        quantity,
+        price: product.price,
+      });
+      orderData.total += product.price * quantity;
+    }
+
+    const order = new Order(orderData);
+    await order.save();
+
+    res.json({ message: "Order saved successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Order not saved" });
+  }
 }
 
-export function GetOrders(req, res) {
-	if (req.user == null) {
-		res.status(401).json({
-			message: "Unauthorized",
-		});
-		return;
-	}
+export async function GetOrders(req, res) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
-	if (req.user.role == "admin") {
-		Order.find()
-			.then((orders) => {
-				res.json(orders);
-			})
-			.catch((err) => {
-				res.status(500).json({
-					message: "Orders not found",
-				});
-			});
-	} else {
-		Order.find({
-			email: req.user.email,
-		})
-			.then((orders) => {
-				res.json(orders);
-			})
-			.catch((err) => {
-				res.status(500).json({
-					message: "Orders not found",
-				});
-			});
-	}
+  try {
+    let orders;
+    if (req.user.role === "admin") {
+      orders = await Order.find();
+    } else {
+      orders = await Order.find({ email: req.user.email });
+    }
+    res.json(orders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Orders not found" });
+  }
 }
 
-export async function UpdateOrder(req,res){
-	try{
-		if(req.user == null){
-			res.status(401).json({
-				message : "Unauthorized"
-			})
-			return
-		}
+export async function UpdateOrder(req, res) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
-		if(req.user.role != "admin"){
-			res.status(403).json({
-				message : "You are not authorized to update an order"
-			})
-			return
-		}
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "You are not authorized to update an order" });
+  }
 
-		const orderId = req.params.orderId
-		const order = await Order.findOneAndUpdate({orderId : orderId},req.body)
+  try {
+    const orderId = req.params.orderId;
+    const updatedOrder = await Order.findOneAndUpdate({ orderId }, req.body, { new: true });
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    res.json({ message: "Order updated successfully", order: updatedOrder });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Order not updated" });
+  }
+}
 
-		res.json({
-			message : "Order updated successfully"
-		})
-	}catch(err){
-		res.status(500).json({
-			message : "Order not updated"
-		})
-	}
+// New: Mark order as completed
+export async function CompleteOrder(req, res) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "You are not authorized to complete orders" });
+  }
+
+  try {
+    const orderId = req.params.orderId;
+    const updatedOrder = await Order.findOneAndUpdate(
+      { orderId },
+      { status: "Completed" },
+      { new: true }
+    );
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    res.json({ message: "Order marked as completed", order: updatedOrder });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to complete order" });
+  }
+}
+
+// New: Delete an order
+export async function DeleteOrder(req, res) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "You are not authorized to delete orders" });
+  }
+
+  try {
+    const orderId = req.params.orderId;
+    const deletedOrder = await Order.findOneAndDelete({ orderId });
+    if (!deletedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    res.json({ message: "Order deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to delete order" });
+  }
 }

@@ -10,7 +10,7 @@ export default function verifyjwt(req, res, next) {
         const token = header.replace("Bearer ", "");
 
         //code eka decode krnnawa mehema
-        jwt.verify(token, process.env.JWT_SKEY, (err, decoded) => {
+        jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
             if (decoded != null) {
                 req.user = decoded;
             }

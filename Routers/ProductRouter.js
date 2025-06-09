@@ -3,8 +3,8 @@ import { CreateProduct, DeleteProduct, getProductId, getProducts, searchProduct,
 
 const productRouter = express.Router();
 
-productRouter.post("/",CreateProduct)
-productRouter.get("/",getProducts)
+productRouter.post("/Create",CreateProduct)
+productRouter.get("/getProducts",getProducts)
 productRouter.get("/:id",getProductId)
 productRouter.delete("/:productId",DeleteProduct)
 productRouter.put("/:productId",UpdateProduct)
