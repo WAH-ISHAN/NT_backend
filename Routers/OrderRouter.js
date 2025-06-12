@@ -5,12 +5,8 @@ const orderRouter = express.Router();
 
 orderRouter.post("/CreateOrder", CreateOrder);
 orderRouter.get("/", GetOrders);
-orderRouter.put("/:orderId", UpdateOrder);
-
-// Add this route to mark order as completed
+orderRouter.put("/:orderId/Update", UpdateOrder);
 orderRouter.patch("/:orderId/complete", CompleteOrder);
-
-// Add this route to delete order
-orderRouter.delete("/:orderId", DeleteOrder);
+orderRouter.delete("/:orderId/delete", DeleteOrder);
 
 export default orderRouter;

@@ -274,3 +274,46 @@ export async function getAllUsers(req, res) {
 	}
 }
 
+
+
+export async function getProfile(req, res) {
+  try {
+  
+    const email = req.user.email;
+
+    const user = await User.findOne({ email }).select("-password"); 
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    console.error("getProfile error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
+export async function updateProfile(req, res) {
+  try {
+    const userId = req.user.id;
+    const { firstName, lastName, phone, password } = req.body;
+
+    const updateData = {
+      firstName,
+      lastName,
+      phone,
+    };
+
+    if (password && password.trim() !== "") {
+      updateData.password = bcrypt.hashSync(password, 10);
+    }
+
+    await User.findByIdAndUpdate(userId, updateData);
+
+    res.json({ message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Error updating profile" });
+  }
+}

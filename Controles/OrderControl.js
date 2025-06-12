@@ -8,7 +8,7 @@ export async function CreateOrder(req, res) {
 
   const body = req.body;
 
-  // Validate required fields
+
   if (!body.phone || !body.address) {
     return res.status(400).json({ message: "Phone and address are required." });
   }
@@ -21,11 +21,11 @@ export async function CreateOrder(req, res) {
     address: body.address,
     billItems: [],
     total: 0,
-    status: "Pending", // Add status by default
+    status: "Pending", 
   };
 
   try {
-    // Get last order to generate new orderId
+   
     const lastBills = await Order.find().sort({ date: -1 }).limit(1);
     if (lastBills.length === 0) {
       orderData.orderId = "ORDER0001";
@@ -36,7 +36,7 @@ export async function CreateOrder(req, res) {
       orderData.orderId = "ORDER" + newOrderNumberStr;
     }
 
-    // Process each bill item
+   
     for (let i = 0; i < body.billItems.length; i++) {
       const { productId, quantity } = body.billItems[i];
       const product = await Product.findOne({ productId });
@@ -104,7 +104,7 @@ export async function UpdateOrder(req, res) {
   }
 }
 
-// New: Mark order as completed
+
 export async function CompleteOrder(req, res) {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
@@ -131,7 +131,7 @@ export async function CompleteOrder(req, res) {
   }
 }
 
-// New: Delete an order
+
 export async function DeleteOrder(req, res) {
   if (!req.user) {
     return res.status(401).json({ message: "Unauthorized" });
