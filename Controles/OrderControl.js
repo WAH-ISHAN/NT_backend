@@ -70,7 +70,7 @@ export async function GetOrders(req, res) {
 
   try {
     let orders;
-    if (req.user.role === "admin") {
+    if (req.user.usertype === "admin") {
       orders = await Order.find();
     } else {
       orders = await Order.find({ email: req.user.email });
@@ -87,7 +87,7 @@ export async function UpdateOrder(req, res) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  if (req.user.role !== "admin") {
+  if (req.user.usertype !== "admin") {
     return res.status(403).json({ message: "You are not authorized to update an order" });
   }
 
@@ -110,7 +110,7 @@ export async function CompleteOrder(req, res) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  if (req.user.role !== "admin") {
+  if (req.user.usertype !== "admin") {
     return res.status(403).json({ message: "You are not authorized to complete orders" });
   }
 
@@ -137,7 +137,7 @@ export async function DeleteOrder(req, res) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  if (req.user.role !== "admin") {
+  if (req.user.usertype  !== "admin") {
     return res.status(403).json({ message: "You are not authorized to delete orders" });
   }
 

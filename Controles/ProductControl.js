@@ -99,7 +99,7 @@ export function UpdateProduct(req,res){
         return;
     }
 
-    if(req.user.role != "admin"){
+    if(req.user.usertype != "admin"){
         res.status(403).json({
             message : "You are not authorized to update a product"
         })
