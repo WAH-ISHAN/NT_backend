@@ -6,6 +6,7 @@ import axios from "axios";
 import nodemailer from "nodemailer";
 import OTP from "../Models/Otp.js";
 
+
 const transporter = nodemailer.createTransport({
 	service: "gmail",
 	host: "smtp.gmail.com",
@@ -20,159 +21,148 @@ const transporter = nodemailer.createTransport({
 dotenv.config()
 export function saveUser(req, res) {
 
-    
-    if (!req.body.password) {
-        return res.status(400).json({ message: "Password is required" });
-    }
 
-    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+	if (!req.body.password) {
+		return res.status(400).json({ message: "Password is required" });
+	}
+
+	const hashedPassword = bcrypt.hashSync(req.body.password, 10);
 
 
-    const user = new User({
-        email: req.body.email,
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        password: hashedPassword,
-        usertype: req.body.usertype,
-    });
+	const user = new User({
+		email: req.body.email,
+		firstName: req.body.firstName,
+		lastName: req.body.lastName,
+		password: hashedPassword,
+		usertype: req.body.usertype,
+	});
 	console.log(user);
-    user.save()
-        .then(() => {
-            res.json({
-                message: "User saved successfully",
-            });
-        })
-        .catch((err) => {
-            console.log(err);
-            res.status(500).json({
-                message: "User not saved",
-            });
-        });
+	user.save()
+		.then(() => {
+			res.json({
+				message: "User saved successfully",
+			});
+		})
+		.catch((err) => {
+			console.log(err);
+			res.status(500).json({
+				message: "User not saved",
+			});
+		});
 }
 
 export async function loginUser(req, res) {
-  const email = req.body.email;
-  const password = req.body.password;
+	const email = req.body.email;
+	const password = req.body.password;
 
-  try {
-    const user = await User.findOne({ email: email });
+	try {
+		const user = await User.findOne({ email: email });
 
-    if (!user) {
-      return res.status(404).json({ message: "Invalid email" });
-    }
+		if (!user) {
+			return res.status(404).json({ message: "Invalid email" });
+		}
 
-    const isPasswordCorrect = bcrypt.compareSync(password, user.password);
+		const isPasswordCorrect = bcrypt.compareSync(password, user.password);
 
-    if (!isPasswordCorrect) {
-      return res.status(403).json({ message: "Invalid password" });
-    }
+		if (!isPasswordCorrect) {
+			return res.status(403).json({ message: "Invalid password" });
+		}
 
-    // ✅ Update last login time
-    await User.updateOne(
-      { email: user.email },
-      { lastLoggedIn: new Date() }
-    );
+		// ✅ Update last login time
+		await User.updateOne(
+			{ email: user.email },
+			{ lastLoggedIn: new Date() }
+		);
 
-    const userData = {
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      usertype: user.usertype,
-      phone: user.phone,
-      isDisabled: user.isDisabled,
-      isEmailVerified: user.isEmailVerified
-    };
+		const userData = {
+			email: user.email,
+			firstName: user.firstName,
+			lastName: user.lastName,
+			usertype: user.usertype,
+			phone: user.phone,
+			isDisabled: user.isDisabled,
+			isEmailVerified: user.isEmailVerified
+		};
 
-    const token = jwt.sign(userData, process.env.JWT_KEY, {
-      expiresIn: "12h"
-    });
+		const token = jwt.sign(userData, process.env.JWT_KEY, {
+			expiresIn: "12h"
+		});
 
-    res.json({
-      message: "Login successful",
-      token: token,
-      user: userData
-    });
+		res.json({
+			message: "Login successful",
+			token: token,
+			user: userData
+		});
 
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-}
-
-export async function googleLogin(){
-
-	const accesstoken = req.body.accesstoken;
-
-	try{
-		const responce = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo",{
-			headers : {
-				Authorization : "Bearer "+accesstoken
-			}
-		})
-
-		const user = await User.findOne({
-			email: responce.data.email
-		})
-		if(user == null){
-			const newuser = new User({
-				email: user.email,
-					firstName: user.firstName,
-					lastName: user.lastName,
-					usertype: user. usertype,
-					phone: user.phone,
-					password : accesstoken,
-					isEmailVerified: true,
-					
-			})
-			await newuser.save()
-			const userData = {
-					email: responce.data.email,
-					firstName: responce.data.given_firstName,
-					lastName: responce.data.given_lastName,
-					 usertype: "user",
-					phone: "not given",
-					isDisabled: false,
-					isEmailVerified: true
-				}
-				
-
-				const token = jwt.sign(userData,process.env.JWT_KEY,{
-					expiresIn : "12hrs"
-				})
-
-				res.json({
-					message: "Login successful",
-					token: token,
-					user : userData
-				});
-
-		}else{
-			const userData = {
-					email: user.email,
-					firstName: user.firstName,
-					lastName: user.lastName,
-					 usertype: user. usertype,
-					phone: user.phone,
-					isDisabled: user.isDisabled,
-					isEmailVerified: user.isEmailVerified
-				}
-				
-
-        // Respond with token and user info
-        res.json({
-            message: "Login successful",
-            token: token,
-            user: userData
-        });
-
-
-	}catch(e){
-		res.status(500).json({
-			message:"Google Login fail "
-		})
+	} catch (err) {
+		console.error("Login error:", err);
+		res.status(500).json({ message: "Server error" });
 	}
 }
-export  function sendOTP(req, res) {
+
+export async function googleLogin(req, res) {
+	const accessToken = req.body.accessToken;
+
+	try {
+		// Fetch user info from Google
+		const response = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
+			headers: {
+				Authorization: `Bearer ${accessToken}`
+			}
+		});
+
+		const googleUser = response.data;
+		const existingUser = await User.findOne({ email: googleUser.email });
+
+		let user;
+
+		if (!existingUser) {
+			// Create a new user
+			user = new User({
+				email: googleUser.email,
+				firstName: googleUser.given_name || "FirstName",
+				lastName: googleUser.family_name || "LastName",
+				usertype: "user",
+				phone: "not given",
+				password: "google_oauth", // Placeholder, should use a secure method or flag
+				isEmailVerified: true
+			});
+			await user.save();
+		} else {
+			user = existingUser;
+		}
+
+		// Create userData object
+		const userData = {
+			email: user.email,
+			firstName: user.firstName,
+			lastName: user.lastName,
+			usertype: user.usertype,
+			phone: user.phone,
+			isDisabled: user.isDisabled,
+			isEmailVerified: user.isEmailVerified
+		};
+
+		// Generate JWT token
+		const token = jwt.sign(userData, process.env.JWT_KEY, { expiresIn: "12h" });
+
+		// Respond with token and user info
+		res.json({
+			message: "Login successful",
+			token,
+			user: userData
+		});
+
+	} catch (error) {
+		console.error("Google Login Error:", error);
+		res.status(500).json({
+			message: "Google login failed",
+			error: error.message
+		});
+	}
+}
+
+export function sendOTP(req, res) {
 	const email = req.body.email;
 	const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -200,59 +190,59 @@ export  function sendOTP(req, res) {
 				message: "Error sending OTP",
 			});
 		}
-		
+
 		req.session.otp = otp;
-		req.session.email = email; 
+		req.session.email = email;
 		res.json({
 			message: "OTP sent successfully",
-			otp: otp, 
+			otp: otp,
 		});
-	});	
+	});
 }
-export async function changePassword(req,res){
+export async function changePassword(req, res) {
 	const email = req.body.email;
 	const password = req.body.password;
 	const otp = req.body.otp;
-	try{
-		
-		const lastOTPData = await OTP.findOne({
-			email : email
-		}).sort({createdAt : -1})
+	try {
 
-		if(lastOTPData == null){
+		const lastOTPData = await OTP.findOne({
+			email: email
+		}).sort({ createdAt: -1 })
+
+		if (lastOTPData == null) {
 			res.status(404).json({
-				message : "No OTP found for this email"
+				message: "No OTP found for this email"
 			})
 			return;
 		}
-		if(lastOTPData.otp != otp){
+		if (lastOTPData.otp != otp) {
 			res.status(403).json({
-				message : "Invalid OTP"
+				message: "Invalid OTP"
 			})
 			return;
 		}
 
 		const hashedPassword = bcrypt.hashSync(password, 10);
 		await User.updateOne({
-			email : email
-		},{
-			password : hashedPassword
+			email: email
+		}, {
+			password: hashedPassword
 		})
 		await OTP.deleteMany({
-			email : email
+			email: email
 		})
 		res.json({
-			message : "Password changed successfully"
+			message: "Password changed successfully"
 		})
 
-		
 
-	}catch(e){
+
+	} catch (e) {
 		res.status(500).json({
-			message : "Error changing password"
+			message: "Error changing password"
 		})
 	}
-	
+
 
 }
 export async function getAllUsers(req, res) {
@@ -273,43 +263,43 @@ export async function getAllUsers(req, res) {
 
 
 export async function getProfile(req, res) {
-  try {
-  
-    const email = req.user.email;
+	try {
 
-    const user = await User.findOne({ email }).select("-password"); 
+		const email = req.user.email;
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+		const user = await User.findOne({ email }).select("-password");
 
-    res.json({ user });
-  } catch (error) {
-    console.error("getProfile error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		res.json({ user });
+	} catch (error) {
+		console.error("getProfile error:", error);
+		res.status(500).json({ message: "Server error" });
+	}
 }
 
 export async function updateProfile(req, res) {
-  try {
-    const userId = req.user.id;
-    const { firstName, lastName, phone, password } = req.body;
+	try {
+		const userId = req.user.id;
+		const { firstName, lastName, phone, password } = req.body;
 
-    const updateData = {
-      firstName,
-      lastName,
-      phone,
-    };
+		const updateData = {
+			firstName,
+			lastName,
+			phone,
+		};
 
-    if (password && password.trim() !== "") {
-      updateData.password = bcrypt.hashSync(password, 10);
-    }
+		if (password && password.trim() !== "") {
+			updateData.password = bcrypt.hashSync(password, 10);
+		}
 
-    await User.findByIdAndUpdate(userId, updateData);
+		await User.findByIdAndUpdate(userId, updateData);
 
-    res.json({ message: "Profile updated successfully" });
-  } catch (error) {
-    console.error("Error updating profile:", error);
-    res.status(500).json({ message: "Error updating profile" });
-  }
+		res.json({ message: "Profile updated successfully" });
+	} catch (error) {
+		console.error("Error updating profile:", error);
+		res.status(500).json({ message: "Error updating profile" });
+	}
 }
