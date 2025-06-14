@@ -303,3 +303,36 @@ export async function updateProfile(req, res) {
 		res.status(500).json({ message: "Error updating profile" });
 	}
 }
+
+export async function createAdmin(req, res) {
+	const { email, password, firstName, lastName, phone } = req.body;
+
+	if (!password || !email) {
+		return res.status(400).json({ message: "Email and Password are required" });
+	}
+
+	const existing = await User.findOne({ email });
+	if (existing) {
+		return res.status(409).json({ message: "Email already registered" });
+	}
+
+	const hashedPassword = bcrypt.hashSync(password, 10);
+
+	const newAdmin = new User({
+		email,
+		password: hashedPassword,
+		firstName,
+		lastName,
+		phone,
+		usertype: "admin",
+		isEmailVerified: true,
+	});
+
+	try {
+		await newAdmin.save();
+		res.json({ message: "Admin created successfully" });
+	} catch (err) {
+		console.error("Admin creation error:", err);
+		res.status(500).json({ message: "Server error creating admin" });
+	}
+}

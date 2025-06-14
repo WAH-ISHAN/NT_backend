@@ -1,6 +1,7 @@
 import express from "express";
 import {
   changePassword,
+  createAdmin,
   getAllUsers,
   getProfile,
   googleLogin,
@@ -21,5 +22,6 @@ userRouter.post("/changePass", changePassword);
 userRouter.get("/allusers", getAllUsers);
 userRouter.get("/profile", verifyjwt, getProfile);
 userRouter.put("/profile", verifyjwt, updateProfile);
+userRouter.post("/createAdmin", createAdmin);
 
 export default userRouter;
