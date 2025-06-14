@@ -158,16 +158,12 @@ export async function googleLogin(){
 				}
 				
 
-				const token = jwt.sign(userData,process.env.JWT_KEY,{
-					expiresIn : "12hrs"
-				})
-
-				res.json({
-					message: "Login successful",
-					token: token,
-					user : userData
-				});
-		}
+        // Respond with token and user info
+        res.json({
+            message: "Login successful",
+            token: token,
+            user: userData
+        });
 
 
 	}catch(e){
