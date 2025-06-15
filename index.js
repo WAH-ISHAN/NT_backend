@@ -7,6 +7,7 @@ import verifyJWT from "./middleware/auth.js";
 import orderRouter from "./Routers/OrderRouter.js";
 import dotenv from "dotenv";
 import cors from "cors";
+import dashboardrouter from "./Routers/DashboardRouting.js";
 
 
 
@@ -30,6 +31,7 @@ app.use(verifyJWT);
 app.use("/api/user", userRouter);
 app.use("/api/product", productRouter);
 app.use("/api/order", orderRouter);
+app.use("/api/admin", dashboardrouter);
 
 app.listen(5000, () => {
 	console.log("Server is running on port 5000");
