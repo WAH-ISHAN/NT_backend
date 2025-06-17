@@ -1,6 +1,7 @@
 Ninja Threads is a full-stack online anime t-shirt store built with the MERN stack (MongoDB, Express, React, Node.js). It features a modern and secure e-commerce platform designed for anime fans to browse, order, and manage products effortlessly.
 
 Key Features:
+
 Full CRUD operations for products, users, and orders
 
 User authentication with JWT for secure access control
